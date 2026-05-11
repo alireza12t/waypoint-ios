@@ -23,6 +23,7 @@ struct EventDetailView: View {
     @EnvironmentObject var store: TripStore
     @Environment(\.dismiss) var dismiss
     @State private var showQR = false
+    @State private var selectedAttachment: Attachment?
 
     var body: some View {
         NavigationStack {
@@ -31,6 +32,7 @@ struct EventDetailView: View {
                     headerSection
                     typeSection.padding()
                     if !event.warningNotes.isEmpty { warningSection.padding(.horizontal).padding(.bottom) }
+                    if !event.attachments.isEmpty  { attachmentsSection.padding(.horizontal).padding(.bottom) }
                     if !event.notes.isEmpty        { notesSection.padding(.horizontal).padding(.bottom) }
                     actionButtons.padding()
                 }
@@ -44,6 +46,13 @@ struct EventDetailView: View {
         .sheet(isPresented: $showQR) {
             if let conf = event.confirmationNumber {
                 QRDisplayView(content: conf, title: event.title)
+            }
+        }
+        .sheet(item: $selectedAttachment) { att in
+            if att.hasPDF {
+                PDFViewerView(attachment: att)
+            } else if let qr = att.qrCodeContent {
+                QRDisplayView(content: qr, title: att.displayName)
             }
         }
     }
@@ -104,6 +113,40 @@ struct EventDetailView: View {
         }
     }
 
+    private var attachmentsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Documents & Tickets").font(.subheadline).fontWeight(.semibold).foregroundStyle(.secondary)
+            ForEach(event.attachments) { att in
+                Button { selectedAttachment = att } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle().fill(Color.waypointAmber.opacity(0.15)).frame(width: 40, height: 40)
+                            Image(systemName: att.kind.icon).foregroundStyle(Color.waypointAmber)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(att.displayName).font(.subheadline).fontWeight(.medium)
+                            HStack(spacing: 6) {
+                                if att.hasQR {
+                                    Label("QR", systemImage: "qrcode")
+                                        .font(.caption2).foregroundStyle(.green)
+                                }
+                                if att.hasPDF {
+                                    Label("PDF", systemImage: "doc.fill")
+                                        .font(.caption2).foregroundStyle(.red)
+                                }
+                            }
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                    }
+                    .padding(12).background(Color.waypointCard)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Notes").font(.subheadline).fontWeight(.semibold).foregroundStyle(.secondary)
@@ -115,9 +158,22 @@ struct EventDetailView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 10) {
-            if event.confirmationNumber != nil {
-                Button { showQR = true } label: {
-                    Label("Show QR / Barcode", systemImage: "qrcode").frame(maxWidth: .infinity)
+            if event.confirmationNumber != nil || !event.attachments.isEmpty {
+                let hasPDF = event.attachments.contains(where: { $0.hasPDF })
+                let hasQR  = event.attachments.contains(where: { $0.hasQR }) || event.confirmationNumber != nil
+                Button {
+                    if let att = event.attachments.first(where: { $0.hasPDF }) {
+                        selectedAttachment = att
+                    } else {
+                        showQR = true
+                    }
+                } label: {
+                    HStack {
+                        Label("Show Ticket", systemImage: hasPDF ? "doc.fill" : "qrcode")
+                        Spacer()
+                        if hasQR { Image(systemName: "qrcode").font(.caption).foregroundStyle(.secondary) }
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered).tint(event.type.color)
             }

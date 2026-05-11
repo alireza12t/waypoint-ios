@@ -117,6 +117,17 @@ enum SampleData {
                     "No selfie sticks in Nasrid Palaces",
                     "Backpack worn on front inside Nasrid Palaces"
                 ],
+                attachments: [
+                    Attachment(kind: .ticket,
+                               displayName: "GetYourGuide Voucher",
+                               filename: "alhambra-voucher.pdf",
+                               mimeType: "application/pdf",
+                               qrCodeContent: "GYGRFQQYM9MY",
+                               bundledResourceName: "alhambra-voucher",
+                               parsedFields: ["Booking Ref": "GYGRFQQYM9MY", "PIN": "EjXLM3IR",
+                                              "Provider": "Alhambra Guide / Granada Premium Tours",
+                                              "Phone": "+34 644 927 756"])
+                ],
                 payload: .attraction(AttractionPayload(venue: "Alhambra",
                                                         meetingPoint: "P.º del Generalife — 'Guides' sign",
                                                         provider: "Alhambra Guide / Granada Premium Tours",
@@ -257,6 +268,7 @@ enum SampleData {
         loc: String? = nil, lat: Double? = nil, lng: Double? = nil,
         conf: String? = nil,
         warnings: [String] = [],
+        attachments: [Attachment] = [],
         payload: EventPayload = .none
     ) -> TripEvent {
         var e = TripEvent(type: type, title: title, startTime: start)
@@ -266,6 +278,7 @@ enum SampleData {
         e.longitude = lng
         e.confirmationNumber = conf
         e.warningNotes = warnings
+        e.attachments = attachments
         e.payload = payload
         return e
     }
