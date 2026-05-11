@@ -17,10 +17,6 @@ final class TripStore: ObservableObject {
 
     private func bootstrap() async {
         await load()
-        if trips.isEmpty {
-            trips = SampleData.sampleTrips()
-            await save()
-        }
     }
 
     func save() async {
