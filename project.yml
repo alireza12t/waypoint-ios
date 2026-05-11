@@ -34,3 +34,6 @@ targets:
         CURRENT_PROJECT_VERSION: 1
         MARKETING_VERSION: 1.0.0
         DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+        DEVELOPMENT_TEAM: 9R2F9KNAK6
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "Apple Development"

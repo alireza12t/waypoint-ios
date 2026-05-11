@@ -10,14 +10,14 @@ struct AddEventView: View {
     @State private var showScanner = false
 
     // Form fields
-    @State private var title       = ""
-    @State private var startTime   = Date()
-    @State private var endTime     = Date()
-    @State private var hasEndTime  = false
-    @State private var locationName = ""
-    @State private var confirmRef  = ""
-    @State private var notes       = ""
-    @State private var warningNote = ""
+    @State private var title              = ""
+    @State private var startTime          = Date()
+    @State private var endTime            = Date()
+    @State private var hasEndTime         = false
+    @State private var departureLocation: PickedLocation? = nil
+    @State private var arrivalLocation:   PickedLocation? = nil
+    @State private var confirmRef         = ""
+    @State private var notes              = ""
 
     enum Step { case pickType, pickSource, fillForm }
 
@@ -122,8 +122,20 @@ struct AddEventView: View {
                     DatePicker("End", selection: $endTime, in: startTime...)
                 }
             }
-            Section("Location") {
-                TextField("Place name (optional)", text: $locationName)
+            if selectedType?.isTransport == true {
+                Section("Departure") {
+                    LocationSearchField(placeholder: "Station / airport / stop",
+                                        picked: $departureLocation)
+                }
+                Section("Arrival") {
+                    LocationSearchField(placeholder: "Station / airport / stop",
+                                        picked: $arrivalLocation)
+                }
+            } else {
+                Section("Location") {
+                    LocationSearchField(placeholder: "Place name (optional)",
+                                        picked: $departureLocation)
+                }
             }
             Section("Reference") {
                 HStack {
@@ -149,10 +161,15 @@ struct AddEventView: View {
     private func save() {
         guard let type = selectedType else { return }
         var event = TripEvent(type: type, title: title.trimmingCharacters(in: .whitespaces), startTime: startTime)
-        event.endTime           = hasEndTime ? endTime : nil
-        event.locationName      = locationName.isEmpty ? nil : locationName
-        event.confirmationNumber = confirmRef.isEmpty ? nil : confirmRef
-        event.notes             = notes
+        event.endTime             = hasEndTime ? endTime : nil
+        event.locationName        = departureLocation?.name
+        event.latitude            = departureLocation?.latitude
+        event.longitude           = departureLocation?.longitude
+        event.arrivalLocationName = arrivalLocation?.name
+        event.arrivalLatitude     = arrivalLocation?.latitude
+        event.arrivalLongitude    = arrivalLocation?.longitude
+        event.confirmationNumber  = confirmRef.isEmpty ? nil : confirmRef
+        event.notes               = notes
         store.addEvent(event, to: tripID)
         dismiss()
     }

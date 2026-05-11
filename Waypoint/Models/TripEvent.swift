@@ -13,9 +13,12 @@ struct TripEvent: Identifiable, Codable {
     var title: String
     var startTime: Date
     var endTime: Date? = nil
-    var locationName: String? = nil
+    var locationName: String? = nil     // departure station / starting point
     var latitude: Double? = nil
     var longitude: Double? = nil
+    var arrivalLocationName: String? = nil  // arrival station / end point (transport only)
+    var arrivalLatitude: Double? = nil
+    var arrivalLongitude: Double? = nil
     var confirmationNumber: String? = nil
     var warningNotes: [String] = []
     var notes: String = ""
@@ -27,6 +30,7 @@ struct TripEvent: Identifiable, Codable {
     var payload: EventPayload = .none
 
     var hasLocation: Bool { latitude != nil && longitude != nil }
+    var hasArrivalLocation: Bool { arrivalLatitude != nil && arrivalLongitude != nil }
 
     var durationText: String? {
         guard let end = endTime else { return nil }

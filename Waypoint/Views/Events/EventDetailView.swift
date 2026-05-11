@@ -60,23 +60,53 @@ struct EventDetailView: View {
     // MARK: Header
 
     private var headerSection: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                Circle().fill(event.type.color.opacity(0.2)).frame(width: 56, height: 56)
-                Image(systemName: event.type.icon).font(.title2).foregroundStyle(event.type.color)
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(event.title).font(.title3).fontWeight(.bold)
-                Text("\(event.startTime.dayLabel) · \(event.startTime.timeLabel)")
-                    .font(.subheadline).foregroundStyle(.secondary)
-                if let dur = event.durationText {
-                    Text(dur).font(.caption).foregroundStyle(.tertiary)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle().fill(event.type.color.opacity(0.2)).frame(width: 56, height: 56)
+                    Image(systemName: event.type.icon).font(.title2).foregroundStyle(event.type.color)
                 }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(event.title).font(.title3).fontWeight(.bold)
+                    Text("\(event.startTime.dayLabel) · \(event.startTime.timeLabel)")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    if let dur = event.durationText {
+                        Text(dur).font(.caption).foregroundStyle(.tertiary)
+                    }
+                }
+                Spacer()
             }
-            Spacer()
+            .padding()
+
+            if event.type.isTransport,
+               let dep = event.locationName ?? nil,
+               !dep.isEmpty || event.arrivalLocationName != nil {
+                routeStrip(departure: event.locationName, arrival: event.arrivalLocationName)
+                    .padding(.horizontal).padding(.bottom, 12)
+            }
         }
-        .padding()
         .background(event.type.color.opacity(0.08))
+    }
+
+    private func routeStrip(departure: String?, arrival: String?) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("FROM").font(.caption2).foregroundStyle(.secondary)
+                Text(departure ?? "—").font(.subheadline).fontWeight(.semibold).lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: "arrow.right").foregroundStyle(event.type.color)
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("TO").font(.caption2).foregroundStyle(.secondary)
+                Text(arrival ?? "—").font(.subheadline).fontWeight(.semibold).lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(12)
+        .background(event.type.color.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: Type-specific
@@ -156,6 +186,11 @@ struct EventDetailView: View {
 
     // MARK: Actions
 
+    private func mapsURL(lat: Double, lng: Double, name: String) -> URL? {
+        let q = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        return URL(string: "maps://?ll=\(lat),\(lng)&q=\(q)")
+    }
+
     private var actionButtons: some View {
         VStack(spacing: 10) {
             if event.confirmationNumber != nil || !event.attachments.isEmpty {
@@ -178,12 +213,27 @@ struct EventDetailView: View {
                 .buttonStyle(.bordered).tint(event.type.color)
             }
 
-            if let lat = event.latitude, let lng = event.longitude,
-               let url = URL(string: "maps://?ll=\(lat),\(lng)&q=\((event.locationName ?? event.title).addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {
-                Button { UIApplication.shared.open(url) } label: {
-                    Label("Open in Maps", systemImage: "map").frame(maxWidth: .infinity)
+            if let lat = event.latitude, let lng = event.longitude {
+                let label = event.type.isTransport ? "Departure in Maps" : "Open in Maps"
+                let name  = event.locationName ?? event.title
+                if let url = mapsURL(lat: lat, lng: lng, name: name) {
+                    Button { UIApplication.shared.open(url) } label: {
+                        Label(label, systemImage: event.type.isTransport ? "arrow.up.right.circle" : "map")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
                 }
-                .buttonStyle(.bordered)
+            }
+
+            if event.type.isTransport, let lat = event.arrivalLatitude, let lng = event.arrivalLongitude {
+                let name = event.arrivalLocationName ?? "Arrival"
+                if let url = mapsURL(lat: lat, lng: lng, name: name) {
+                    Button { UIApplication.shared.open(url) } label: {
+                        Label("Arrival in Maps", systemImage: "arrow.down.right.circle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
 
             Button {

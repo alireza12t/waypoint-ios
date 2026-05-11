@@ -1,12 +1,21 @@
 import SwiftUI
 import MapKit
 
+enum MapPinKind { case departure, arrival, single }
+
 struct MapPin: Identifiable {
     let id: UUID
     let event: TripEvent
+    let kind: MapPinKind
     let orderNumber: Int?  // shown only when day-filter active
     var coordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(latitude: event.latitude ?? 0, longitude: event.longitude ?? 0)
+        switch kind {
+        case .arrival:
+            return CLLocationCoordinate2D(latitude: event.arrivalLatitude ?? 0,
+                                          longitude: event.arrivalLongitude ?? 0)
+        default:
+            return CLLocationCoordinate2D(latitude: event.latitude ?? 0, longitude: event.longitude ?? 0)
+        }
     }
 }
 
@@ -33,7 +42,7 @@ struct MapTabView: View {
         return ZStack(alignment: .top) {
             Map(coordinateRegion: $region, annotationItems: pins) { pin in
                 MapAnnotation(coordinate: pin.coordinate) {
-                    MapPinView(event: pin.event, orderNumber: pin.orderNumber)
+                    MapPinView(event: pin.event, kind: pin.kind, orderNumber: pin.orderNumber)
                         .onTapGesture { selectedPin = pin.event }
                 }
             }
@@ -137,9 +146,18 @@ struct MapTabView: View {
     }
 
     private func makePins(_ events: [TripEvent], dayFiltered: Bool) -> [MapPin] {
-        events.enumerated().map { i, e in
-            MapPin(id: e.id, event: e, orderNumber: dayFiltered ? i + 1 : nil)
+        var pins: [MapPin] = []
+        for (i, e) in events.enumerated() {
+            let order = dayFiltered ? i + 1 : nil
+            if e.hasLocation {
+                let kind: MapPinKind = e.type.isTransport ? .departure : .single
+                pins.append(MapPin(id: e.id, event: e, kind: kind, orderNumber: order))
+            }
+            if e.type.isTransport && e.hasArrivalLocation {
+                pins.append(MapPin(id: UUID(), event: e, kind: .arrival, orderNumber: nil))
+            }
         }
+        return pins
     }
 
     private func allDays(in city: City) -> [Date] {
@@ -161,14 +179,30 @@ struct MapTabView: View {
 
 struct MapPinView: View {
     let event: TripEvent
+    let kind: MapPinKind
     let orderNumber: Int?
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            ZStack {
-                Circle().fill(event.type.color).frame(width: 36, height: 36)
-                    .shadow(color: .black.opacity(0.3), radius: 3)
-                Image(systemName: event.type.icon).font(.system(size: 14)).foregroundStyle(.white)
+            if kind == .arrival {
+                // Outlined pin = arrival point
+                ZStack {
+                    Circle()
+                        .strokeBorder(event.type.color, lineWidth: 3)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(Color(UIColor.systemBackground)))
+                        .shadow(color: .black.opacity(0.2), radius: 3)
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(event.type.color)
+                }
+            } else {
+                // Filled pin = departure or single location
+                ZStack {
+                    Circle().fill(event.type.color).frame(width: 36, height: 36)
+                        .shadow(color: .black.opacity(0.3), radius: 3)
+                    Image(systemName: event.type.icon).font(.system(size: 14)).foregroundStyle(.white)
+                }
             }
             if let n = orderNumber {
                 Text("\(n)")
