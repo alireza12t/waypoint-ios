@@ -55,6 +55,8 @@ struct QRDisplayView: View {
         filter.correctionLevel = "M"
         guard let output = filter.outputImage else { return nil }
         let scaled = output.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
-        return UIImage(ciImage: scaled)
+        // Rasterize to CGImage so UIImage always has a real bitmap (CIImage-backed UIImage renders blank in SwiftUI)
+        guard let cgImage = CIContext().createCGImage(scaled, from: scaled.extent) else { return nil }
+        return UIImage(cgImage: cgImage)
     }
 }
