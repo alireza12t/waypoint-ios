@@ -58,8 +58,8 @@ struct DocsTabView: View {
                                         .font(.body).foregroundStyle(event.type.color)
                                 }
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(att.displayName).font(.subheadline)
-                                    Text(event.title).font(.caption).foregroundStyle(.secondary)
+                                    Text(att.displayName).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                                    Text(event.title).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                                 }
                                 Spacer()
                                 HStack(spacing: 4) {
@@ -144,11 +144,14 @@ struct DocsTabView: View {
     private func eventRow(_ event: TripEvent) -> some View {
         Button { selectedEvent = event } label: {
             HStack(spacing: 12) {
-                Image(systemName: event.type.icon)
-                    .foregroundStyle(event.type.color)
+                Image(systemName: event.isDone ? "checkmark.circle.fill" : event.type.icon)
+                    .foregroundStyle(event.isDone ? .green : event.type.color)
                     .frame(width: 24)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(event.title).font(.subheadline)
+                        .strikethrough(event.isDone)
+                        .foregroundStyle(event.isDone ? .secondary : .primary)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(event.startTime.shortDate).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()

@@ -26,10 +26,14 @@ struct QRDisplayView: View {
                         ProgressView().tint(.gray)
                     }
 
-                    Text(content)
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(Color(UIColor.darkGray))
-                        .multilineTextAlignment(.center).padding(.horizontal)
+                    // Only show the ref if it's short enough to be human-readable
+                    if content.count <= 24 {
+                        Text(content)
+                            .font(.system(.subheadline, design: .monospaced))
+                            .fontWeight(.medium)
+                            .foregroundStyle(Color(UIColor.darkGray))
+                            .multilineTextAlignment(.center).padding(.horizontal)
+                    }
                 }
             }
             .navigationTitle("Ticket")
