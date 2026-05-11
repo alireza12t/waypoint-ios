@@ -60,11 +60,6 @@ final class TripStore: ObservableObject {
         Task { await save() }
     }
 
-    func deleteTrip(id: UUID) {
-        trips.removeAll { $0.id == id }
-        Task { await save() }
-    }
-
     func trip(id: UUID) -> Trip? { trips.first { $0.id == id } }
 
     // MARK: - Event CRUD
@@ -72,6 +67,7 @@ final class TripStore: ObservableObject {
     func addEvent(_ event: TripEvent, to tripID: UUID) {
         guard let i = trips.firstIndex(where: { $0.id == tripID }) else { return }
         trips[i].events.append(event)
+        NotificationManager.shared.schedule(event)
         Task { await save() }
     }
 
@@ -79,6 +75,7 @@ final class TripStore: ObservableObject {
         guard let ti = trips.firstIndex(where: { $0.id == tripID }),
               let ei = trips[ti].events.firstIndex(where: { $0.id == event.id }) else { return }
         trips[ti].events[ei] = event
+        NotificationManager.shared.schedule(event)
         Task { await save() }
     }
 
@@ -86,12 +83,24 @@ final class TripStore: ObservableObject {
         guard let ti = trips.firstIndex(where: { $0.id == tripID }),
               let ei = trips[ti].events.firstIndex(where: { $0.id == eventID }) else { return }
         trips[ti].events[ei].isDone.toggle()
+        let updated = trips[ti].events[ei]
+        if updated.isDone { NotificationManager.shared.cancel(eventID) }
+        else               { NotificationManager.shared.schedule(updated) }
         Task { await save() }
     }
 
     func deleteEvent(id: UUID, from tripID: UUID) {
         guard let ti = trips.firstIndex(where: { $0.id == tripID }) else { return }
         trips[ti].events.removeAll { $0.id == id }
+        NotificationManager.shared.cancel(id)
+        Task { await save() }
+    }
+
+    func deleteTrip(id: UUID) {
+        if let trip = trips.first(where: { $0.id == id }) {
+            NotificationManager.shared.cancelAll(for: trip.events)
+        }
+        trips.removeAll { $0.id == id }
         Task { await save() }
     }
 

@@ -24,6 +24,8 @@ struct EventDetailView: View {
     @Environment(\.dismiss) var dismiss
     @State private var showQR = false
     @State private var selectedAttachment: Attachment?
+    @State private var notifEnabled: Bool = false
+    @State private var notifOffset: NotificationOffset = .thirtyMin
 
     var body: some View {
         NavigationStack {
@@ -33,6 +35,7 @@ struct EventDetailView: View {
                     typeSection.padding()
                     if !event.warningNotes.isEmpty { warningSection.padding(.horizontal).padding(.bottom) }
                     if !event.attachments.isEmpty  { attachmentsSection.padding(.horizontal).padding(.bottom) }
+                    notificationsSection.padding(.horizontal).padding(.bottom)
                     if !event.notes.isEmpty        { notesSection.padding(.horizontal).padding(.bottom) }
                     actionButtons.padding()
                 }
@@ -42,6 +45,10 @@ struct EventDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
+        }
+        .onAppear {
+            notifEnabled = event.notificationEnabled
+            notifOffset  = event.notificationOffset
         }
         .sheet(isPresented: $showQR) {
             if let conf = event.confirmationNumber {
@@ -175,6 +182,37 @@ struct EventDetailView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    private var notificationsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle(isOn: $notifEnabled.animation()) {
+                Label("Remind me", systemImage: "bell.fill")
+                    .font(.subheadline).fontWeight(.semibold)
+            }
+            .tint(Color.waypointAmber)
+            .onChange(of: notifEnabled) { _ in saveNotifSettings() }
+
+            if notifEnabled {
+                Picker("When", selection: $notifOffset) {
+                    ForEach(NotificationOffset.allCases, id: \.self) { offset in
+                        Text(offset.rawValue).tag(offset)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: notifOffset) { _ in saveNotifSettings() }
+            }
+        }
+        .padding(14)
+        .background(Color.waypointCard)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func saveNotifSettings() {
+        var updated = event
+        updated.notificationEnabled = notifEnabled
+        updated.notificationOffset  = notifOffset
+        store.updateEvent(updated, in: tripID)
     }
 
     private var notesSection: some View {
