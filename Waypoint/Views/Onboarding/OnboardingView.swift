@@ -16,19 +16,19 @@ struct OnboardingView: View {
                     icon: "camera.fill", color: .blue,
                     title: "Scan Tickets & QR Codes",
                     description: "Point your camera at any booking confirmation, QR code, or barcode to import it instantly.",
-                    buttonLabel: "Allow Camera", action: requestCamera
+                    buttonLabel: "Allow Camera", action: requestCamera, onSkip: advance
                 ).tag(1)
                 PermissionPage(
                     icon: "location.fill", color: .green,
                     title: "Show Events on the Map",
                     description: "Your location helps centre the map on where you are during the trip. Never used for tracking.",
-                    buttonLabel: "Allow Location", action: requestLocation
+                    buttonLabel: "Allow Location", action: requestLocation, onSkip: advance
                 ).tag(2)
                 PermissionPage(
                     icon: "bell.badge.fill", color: Color.waypointAmber,
                     title: "Event Reminders",
                     description: "Get a nudge before flights, tours, and timed bookings — max 2 per event, nothing spammy.",
-                    buttonLabel: "Allow Notifications", action: requestNotifications
+                    buttonLabel: "Allow Notifications", action: requestNotifications, onSkip: advance
                 ).tag(3)
                 readyPage.tag(4)
             }
@@ -85,20 +85,22 @@ struct OnboardingView: View {
 
     // MARK: - Permission requests
 
+    private func advance() { withAnimation { page += 1 } }
+
     private func requestCamera() {
         AVCaptureDevice.requestAccess(for: .video) { _ in
-            DispatchQueue.main.async { withAnimation { page = 3 } }
+            DispatchQueue.main.async { self.advance() }
         }
     }
 
     private func requestLocation() {
-        LocationPermissionRequester.shared.request { withAnimation { page = 4 } }
+        LocationPermissionRequester.shared.request { advance() }
     }
 
     private func requestNotifications() {
         UNUserNotificationCenter.current()
             .requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in
-                DispatchQueue.main.async { withAnimation { page = 4 } }
+                DispatchQueue.main.async { self.advance() }
             }
     }
 }
@@ -111,7 +113,8 @@ private struct PermissionPage: View {
     let title: String
     let description: String
     let buttonLabel: String
-    let action: () -> Void
+    let action: () -> Void   // requests permission AND advances
+    let onSkip: () -> Void   // advances without requesting
 
     var body: some View {
         VStack(spacing: 0) {
@@ -135,7 +138,7 @@ private struct PermissionPage: View {
                         .background(color).foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                Button("Skip for now") { action() }
+                Button("Skip for now") { onSkip() }
                     .font(.subheadline).foregroundStyle(.white.opacity(0.4))
             }
             .padding(.horizontal, 32).padding(.bottom, 60)
