@@ -40,7 +40,9 @@ struct MapTabView: View {
         let pins = makePins(filteredEvents, dayFiltered: selectedDay != nil)
 
         return ZStack(alignment: .top) {
-            Map(coordinateRegion: $region, annotationItems: pins) { pin in
+            Map(coordinateRegion: $region,
+                showsUserLocation: true,
+                annotationItems: pins) { pin in
                 MapAnnotation(coordinate: pin.coordinate) {
                     MapPinView(event: pin.event, kind: pin.kind, orderNumber: pin.orderNumber)
                         .onTapGesture { selectedPin = pin.event }
